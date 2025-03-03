@@ -1,0 +1,120 @@
+{# Jinja web template engine which will be rendered by Flask #}
+{# This is a custom template based on bootstrap/base.html #}
+
+{% block doc -%}
+<!DOCTYPE html>
+<html{% block html_attribs %} lang="en" {% endblock html_attribs %}>
+{%- block html %}
+  <head>
+    {%- block head %}
+    <title>{% block title %} Zebrafish {% endblock title %}</title>
+
+    {%- block metas %}
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {%- endblock metas %}
+
+    {%- block styles %}
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap5.3.2.min.css') }}" >
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-icons.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ui_1.13.2_themes_base_jquery-ui.css') }}">
+    <!-- footer -->
+    <style>
+    .footer {
+      bottom: 0;
+      width: 100%;
+      height: 100%;
+      background: #4169e1;
+      border-top: solid 10px #292b2c;
+    }
+
+    .footer p {
+      font-size: 16px;
+      color: black;
+      text-align: center;
+      margin-top: 12px;
+      padding-bottom: 0;
+      margin-bottom: 0;
+    }
+    </style>
+    {%- endblock styles %}
+    {%- endblock head %}
+  </head>
+  <body{% block body_attribs %}{% endblock body_attribs %}>
+    {% block body -%}
+    
+    {# Add a title area before navbar #}
+    {% block top -%}
+    <div class="container-fluid">
+      <div class="row text-white h-100" style="background-color: #4169e1">
+      <!-- Add an empty Stretched Link to make the text clickable -->
+        <div class="col-md-5 position-relative">
+          <h1>Zebrafish</h1>
+          <p>pharmaco-behavioral database</p>
+          <a href="{{ url_for('index') }}" class="stretched-link"></a>
+        </div>
+        <div class="col-md-3 my-auto">
+          <img src="{{ url_for('static', filename='img/Yale_School_of_Medicine.png') }}" class="mx-auto d-block" style="max-width: 100%; height: auto; max-height: 100px" alt="YSM Logo"/>
+        </div>
+        <div class="col-md-4 my-auto">
+          <img src="{{ url_for('static', filename='img/Yale_School_of_Public_Health.png') }}" class="mx-auto d-block" style="max-width: 100%; height: auto; max-height: 100px" alt="YSPH Logo"/>
+        </div>
+      </div>
+    </div>
+    {%- endblock top %}
+    
+    {% block navbar %}
+    {# a always expand navbar, add active class and indicate current page based on Jinja Variable #}
+    <nav class="navbar nav-fill w-100 justify-content-center navbar-dark bg-dark navbar-expand-sm">
+      <div class="container-fluid">
+          <ul class="navbar-nav nav-fill w-100">
+            <li class="nav-item">
+              {% if active_page == 'home' %}
+                <a class="nav-link active" aria-current="page" style="background-color: #4169e1" href="{{ url_for('index') }}">Home</a>
+              {% else %}
+                <a class="nav-link" href="{{ url_for('index') }}">Home</a>
+              {% endif %}
+            </li>
+            <li class="nav-item">
+              {% if active_page == 'search' %}
+                <a class="nav-link active" aria-current="page" style="background-color: #4169e1" href="{{ url_for('search_drug') }}">Search</a>
+              {% else %}
+                <a class="nav-link" href="{{ url_for('search_drug') }}">Search</a>
+              {% endif %}
+            </li>
+            <li class="nav-item">
+              {% if active_page == 'team' %}
+                <a class="nav-link active" aria-current="page" style="background-color: #4169e1" href="{{ url_for('show_team') }}">Team</a>
+              {% else %}
+                <a class="nav-link" href="{{ url_for('show_team') }}">Team</a>
+              {% endif %}
+            </li>
+          </ul>
+      </div>
+    </nav>
+    {%- endblock navbar %}
+    {% block content -%}
+    {%- endblock content %}
+    
+    {# Footer #}
+    {% block footer -%}
+    <footer class="footer">
+      <div class="container-fluid text-center">
+        <p style="white-space: pre">&copy Zebrafish pharmaco-behavioral database 2025 -   | All Rights Reserved</p>
+      </div>
+    </footer>
+    {%- endblock footer %}
+
+    {% block scripts %}
+    <!-- JavaScript Bundle with Popper -->
+    <script src="{{ url_for('static', filename='js/bootstrap5.3.2.bundle.min.js') }}"></script>
+    <!-- JQuery Core -->
+    <script src="{{ url_for('static', filename='js/jquery-3.7.1.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jquery-ui.min.js') }}"></script>
+    {%- endblock scripts %}
+    {%- endblock body %}
+  </body>
+{%- endblock html %}
+</html>
+{% endblock doc -%}

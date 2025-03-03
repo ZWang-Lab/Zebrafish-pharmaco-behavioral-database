@@ -1,0 +1,132 @@
+{# We directly include the bootstrap 3 starter template #}
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    
+        <title>Zebrafish</title>
+        
+        <!-- just for this page, use lower versions to ensure compatibility with Clustergrammer -->
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/ui_1.13.2_themes_base_jquery-ui.css') }}">
+        <!-- together with the fonts folder under static, show the icons in side bar on left of heatmap -->
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/fontawesome.min.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap3.3.7.min.css') }}">
+        <style>
+            #heatmap_container {
+                margin: 0 auto;
+            }
+
+            .icon_buttons{
+                color: #337ab7;
+            }   
+
+            /* sidebar tooltips */
+            .sidebar_tooltip {
+                position: relative;
+                display: inline-block;
+            }
+
+            .sidebar_tooltip .sidebar_tooltip_text {
+                visibility: hidden;
+                width: 120px;
+                background: rgba(0, 0, 0, 1);
+                /*opacity: 0.95;*/
+                color: #fff;
+                text-align: center;
+                border-radius: 6px;
+                padding: 5px 0;
+
+                position: absolute;
+                z-index: 1000;
+                top:100%;
+                /*left:-400%;*/
+                font-size: 15px;
+                /*margin-left: 60px;*/
+                font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+                font-size: 13px;
+                font-weight: bold;
+            }
+
+            .sidebar_tooltip:hover .sidebar_tooltip_text {
+                visibility: visible;
+            }
+        </style>
+    </head>
+    
+    
+    <body>
+        <div class="container-fluid">
+            {# first print some text #}
+            {# add "|safe" to turn off autoescaping and show html-format string directly #}
+            <div class="row" style="margin-top: 1rem">
+                <div class="col-md-6 col-md-offset-3">
+                    {% if success %}
+                        <pre><h4 class="text-success" id="message">{{ for_print|safe }}</h4></pre>
+                    {% else %}
+                        <pre><h4 class="text-danger" id="message">{{ for_print|safe }}</h4></pre>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if display_heatmap %}
+                <div class="row">
+                    <div id="heatmap_container" style="width: 1140px; height: 750px"></div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- just for this page, use lower versions to ensure compatibility with Clustergrammer -->
+        <!-- Clustergrammer plugin with Dependencies -->
+        <script src="{{ url_for('static', filename='js/jquery-1.12.4.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/bootstrap3.3.7.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/underscore-umd-min.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/d3-3.5.17.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/clustergrammer.min.js') }}"></script>
+        <script>
+            // post-processing: by default the missing values (NaN) will be colored with rgb(28,134,238) without opacity attribute, change it to gray rgb(128,128,128)
+            function resetTileFill() {
+                // Select all elements with class "tile" and "row_tile"
+                let tiles = document.querySelectorAll('.tile.row_tile');
+                // Iterate through the elements
+                tiles.forEach(function(tile) {
+                    // Check if the style property "fill-opacity" is not set
+                    if (!tile.style.fillOpacity) {
+                        // Reset fill property
+                        tile.style.fill = 'rgb(128, 128, 128)'; // Replace with the desired color
+                    }
+                });
+            }
+            
+            // define heatmap
+            const network_data = {{ json_str|safe }};
+            let cgm = Clustergrammer({
+                'root': '#heatmap_container',
+                'network_data': network_data,
+            });
+            
+            resetTileFill();
+            
+            // when the heatmap in DOM changes (zoom), the color will be reset; so we need to monitor the changes and reset color
+            // Function to be triggered when mutations are observed
+            function handleMutations(mutationsList, observer) {
+                for(let mutation of mutationsList) {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'transform') {
+                        // Call your desired function here
+                        resetTileFill();
+                    }
+                }
+            }
+            // Target the element to observe
+            let targetNode = document.querySelector('g.clust_group');
+            // Options for the observer (which mutations to observe)
+            let config = { attributes: true, childList: false, subtree: false };
+            // Create an observer instance linked to the callback function
+            let observer = new MutationObserver(handleMutations);
+            // Start observing the target node for the configured mutations
+            observer.observe(targetNode, config);
+        </script>
+    </body>
+</html>

@@ -1,0 +1,69 @@
+{# Jinja web template engine which will be rendered by Flask #}
+{# Template Inheritance #}
+{% extends "mybase.html" %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row" style="margin-top: 1rem">
+    <div class="col-md-8 offset-md-2">
+      <h3>Zebrafish pharmaco-behavioral database team</h3>
+    </div>
+  </div>
+  
+  <div class="row text-center">
+    <div class="col-md-2 offset-md-2">
+      <h5 class="name-box">Ellen J Hoffman</h5>
+      <img src="{{ url_for('static', filename='img/Ellen.jpg') }}" alt="Ellen Photo" class="mx-auto d-block" height="150"/>
+    </div>
+    <div class="col-md-2">
+      <h5 class="name-box">Zuoheng Wang</h5>
+      <img src="{{ url_for('static', filename='img/Zuoheng.png') }}" alt="Zuoheng Photo" class="mx-auto d-block" height="150"/>
+    </div>
+    <div class="col-md-2">
+      <h5 class="name-box">Ningshan Li</h5>
+      <img src="{{ url_for('static', filename='img/Ningshan.jpg') }}" alt="Ningshan Photo" class="mx-auto d-block" height="150"/>
+    </div>
+  </div>
+  
+  <div class="row">
+    <br>
+  </div>
+  
+  <div class="row text-center">
+    <div class="col-md-2 offset-md-2">
+      <h5 class="name-box">Priyanka Jamadagni</h5>
+      <img src="{{ url_for('static', filename='img/Priyanka.png') }}" alt="Priyanka Photo" class="mx-auto d-block" height="150"/>
+    </div>
+    <div class="col-md-2">
+      <h5 class="name-box">Yi Dai</h5>
+      <img src="{{ url_for('static', filename='img/Yi.jpg') }}" alt="Zuoheng Photo" class="mx-auto d-block" height="150"/>
+    </div>
+    <div class="col-md-2">
+      <h5 class="name-box">Yunqing Liu</h5>
+      <img src="{{ url_for('static', filename='img/Yunqing.jpg') }}" alt="Yunqing Photo" class="mx-auto d-block" height="150"/>
+    </div>
+    <div class="col-md-2">
+      <h5 class="name-box">Hellen Weinschutz-Mendes</h5>
+      <img src="{{ url_for('static', filename='img/Hellen.jpg') }}" alt="Hellen Photo" class="mx-auto d-block" height="150"/>
+    </div>
+  </div>
+  
+  <div class="row">
+    <br>
+  </div>
+</div>
+{% endblock %}
+
+
+{% block styles %}
+    {{ super() }}
+    <style>
+        .name-box {
+            display: inline-block;
+            padding: 8px 12px;
+            border: 2px solid black;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
+{% endblock %}

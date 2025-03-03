@@ -1,0 +1,335 @@
+{# Jinja web template engine which will be redered by Flask #}
+{# Template Inheritance #}
+{% extends "mybase.html" %}
+{% from "bootstrap5/form.html" import render_field %}
+
+{# The .container class provides a responsive fixed width container
+The .container-fluid class provides a full width container, spanning the entire width of the viewport
+Bootstrap's grid system allows up to 12 columns across the page
+If you do not want to use all 12 columns individually, you can group the columns together to create wider columns
+md class (for small laptops - screens equal to or greater than 992px wide)
+#}
+
+{% block content %}
+    <div class="container-fluid">
+        {# first print some text #}
+        {# add "|safe" to turn off autoescaping and show html-format string directly #}
+        <div class="row" style="margin-top: 1rem">
+            <div class="col-md-6 offset-md-3">
+                {% if success %}
+                    <pre><h4 class="text-success" id="message">{{ for_print|safe }}</h4></pre>
+                {% else %}
+                    <pre><h4 class="text-danger" id="message">{{ for_print|safe }}</h4></pre>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if display_table %}
+            <div class="row">
+                <table id="result_table" class="display" style="width:100%"></table>
+            </div>
+            {# a hidden form #}
+            <div class="row">
+                <form id="myForm" class="form" method="POST" action={{ url_for('show_heatmap') }} role="form" target="_blank" autocomplete="off" novalidate>
+                    {{ form.csrf_token }}
+                    <!-- hidden fields -->
+                    {{ render_field(form.hidden_drug_name) }}
+                    {{ render_field(form.hidden_feature_name) }}
+                    {{ render_field(form.hidden_value_type) }}
+                </form>
+            </div>
+            {# window for column visualization #}
+            <!-- Bootstrap's Tooltip doesn't handle interactive elements inside the tooltip content very well; and Popover can not remember checked status of checkboxes, so use Modal -->
+            <div class="modal fade" id="selectColumnModal" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="modalLabel">Choose Columns:</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="container-fluid">
+                                <div class="row">
+                                    <!-- the checkboxes will be divided among the three columns in a row-first manner -->
+                                    {% for text in col_names %}
+                                        <div class="col-4">
+                                            <div class="form-check">
+                                                {# loop.index starts from 1, just match the columns in DataTables, as the 1st column (index 0) is Drug #}
+                                                <input class="form-check-input" type="checkbox" id="{{ text }}" name="{{ text }}" value="{{ text }}" data-column-index="{{ loop.index }}" checked>
+                                                <label class="form-check-label" for="{{ text }}">{{ text }}</label>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block styles %}
+    {{ super() }}
+    <!-- for Table of Contents sidebar -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/datatables.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery.dataTables.yadcf.css') }}"/>
+    <style>
+        /* Include the custom CSS to mimic Bootstrap's is-invalid styling */
+        .not-number {
+            border-color: #dc3545;
+            padding-right: calc(1.5em + 0.75rem);
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='%23dc3545' viewBox='-2 -2 7 7'%3e%3cpath stroke='%23dc3545' d='M0 0l3 3m0-3L0 3'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+        }
+
+        .not-number:focus {
+            outline: none; /* add this line to ensure border-color change works */
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+        }
+    </style>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <!-- DataTable plugin with some Buttons, HTML5 export extensions -->
+    <script src="{{ url_for('static', filename='js/datatables.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jquery.dataTables.yadcf.js') }}"></script>
+    <script>
+        // declare the DataTable variable in GLOBAL, then we can access it in HTML
+        var myTable;
+        
+        var table_headers = [{ "title": "Drug", "name": "Drug"}];
+        var download_headers = ["Drug"];
+        {% for item in col_names %}
+            table_headers.push({ "title": "{{ item }}", "name": "{{ item }}" });
+            download_headers.push("{{ item }}");
+        {% endfor %}
+        
+        // for filtering p values
+        // Object to hold column index and their corresponding filter values to ensure all filters works together
+        var columnFilters = {};
+        
+        // Do not forget to add support for clear them by yadcf's reset all filters button
+        // An HTML element can have multiple event handlers for the same event, and they can be executed in the order they were added
+        // wrap them into a custom function. Note it need to be defined before the document ready, otherwise the reset button can't refer to it
+        function resetTable() {
+            // Check all checkboxes
+            $("input[type='checkbox']").each(function() {
+                // Check each checkbox and trigger their change event
+                $(this).prop('checked', true).trigger('change');
+            });
+            // Clear all input fields for p value filtering
+            $('input[type="text"]').val('');
+            $('input[type="text"]').css('background-color', '');
+            $('input[type="text"]').removeClass('not-number');
+            columnFilters = {}
+            
+            yadcf.exResetAllFilters(myTable);
+        };
+         
+        function drawHeatmap() {
+            // get the drug name in rows passed filtering and feature names in all visible column headers
+            var drugs = myTable.column(0, { search: 'applied' }).data().toArray();
+            var visibleIndexes = myTable.columns(':visible').indexes().toArray();
+            var visibleHeaders = visibleIndexes.map(index => download_headers[index]);
+            // exclude the 1st header which is drug name
+            var features = visibleHeaders.slice(1);
+            if (drugs.length < 2 || features.length < 2) {
+                alert("Please select at least TWO drugs and TWO features for Heatmap!");
+                return;
+            }
+            
+            // set form value then submit
+            $('#hidden_drug_name').val(drugs.join(';'));
+            $('#hidden_feature_name').val(features.join(';'));
+            $('#hidden_value_type').val('p_value');
+
+            // Open a new popup window
+            // Calculate the width and height for the popup window
+            var w = 1350;
+            var h = 850;
+            // Calculate the left and top offsets to center the window
+            var leftOffset = window.screen.width/2 - w/2;
+            var topOffset = window.screen.height/2 - h/2;
+            // Open a new popup window in the center
+            var win = window.open('', 'formPopup', 'width=' + w + ', height=' + h + ', top=' + topOffset + ', left=' + leftOffset + ', scrollbars=yes, resizable=yes');
+            // Check if the window was blocked
+            if(!win || win.closed || typeof win.closed === 'undefined') {
+                alert('Please allow popups for this site');
+                return;
+            }
+
+            // Set the target of the form to the popup window
+            $('#myForm').attr('target', 'formPopup');
+            // Submit the form
+            $('#myForm').submit();
+            // Focus on the new window
+            win.focus();
+        };
+
+
+        $(document).ready( function () {
+            myTable = $('#result_table').DataTable(
+            {
+                data: {{ data|safe }}, // directly pass the list of lists (array of row data) as Jinja variable to DataTable data option as data source
+                columns: table_headers, // it requires a format of [{"title": "col1"}, {"title": "col2"}, ...]
+                deferRender: true, // speed up filtering a little
+                processing: true, // show effect on sorting; effect on yadcf filtering not observed
+                scrollX: false, // conflict with yadcf, if true, headers will be invisible
+                // control the DOM position by Bootstrap grid
+                dom:  "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-4 offset-md-2 text-end'B>>" +
+                      "<'row'<'col-sm-12'tr>>" +
+                      "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+                buttons: [
+                    {
+                        text: 'Column Visibility',
+                        attr: {
+                            id: 'columnSelectorButton',
+                            class: 'dt-button',
+                                   'data-bs-toggle': 'modal',  // finally use Modal
+                                   'data-bs-target': '#selectColumnModal'
+                        }
+                    },
+                    {
+                        text: 'Reset Table',
+                        attr: {
+                            id: 'reset-all-table-filter',
+                            class: 'dt-button',
+                            onclick: 'resetTable()'
+                        }
+                    },
+                    {
+                        text: 'Draw Heatmap',
+                        attr: {
+                            id: 'draw-heatmap',
+                            class: 'dt-button',
+                            onclick: 'drawHeatmap()'
+                        }
+                    },
+                    { // ref https://datatables.net/reference/button/csv
+                        extend: 'csv',
+                        text: 'Export',
+                        header: false,
+                        exportOptions: {
+                            columns: ':visible:not(.not-export-col)'
+                        },
+                        // replace the header since adding filters changes the header text
+                        customize: function(csv) {
+                            var visibleIndexes = myTable.columns(':visible').indexes().toArray();
+                            var visibleHeaders = visibleIndexes.map(index => download_headers[index]);
+                            // quote the headers by ""
+                            return '"' + visibleHeaders.join('","') + '"\n' + csv;
+                        }
+                    }
+                ],
+                columnDefs: [
+                    {
+                        targets: "_all", // Target all columns
+                        className: "dt-center" // Center text in cells
+                    }
+                ]
+            });
+        
+            
+            // filter for drug name
+            yadcf.init ( myTable,
+                        [
+                            {column_number : 0, filter_type: "text", filter_default_label: "Type to search"}
+                        ]);
+        
+        
+            // add filtering for p value
+            $.fn.dataTable.ext.search.push(function(settings, searchData, index, rowData, counter) {
+                // this function will apply each row (stored in data) with the filter（https://datatables.net/manual/plug-ins/search
+                // Iterate over the columnFilters object and apply each filter
+                for (var colIndex in columnFilters) {
+                    var filterVal = columnFilters[colIndex];
+                    // handle empty number in table
+                    if (searchData[colIndex] === '') {
+                        var val = 1;
+                    } else {
+                        var val = parseFloat(searchData[colIndex]);
+                    }
+
+                    if (val > filterVal) {
+                        return false; // Exclude this row
+                    }
+                }
+                return true; // Include this row
+            });
+        
+            // filters for every p value column (< threshold)
+            myTable.columns().every(function(index) {
+                if (index > 0) {  // Skip the first column
+                    var column = this;
+                    // Create a paragraph element for the "less than or equal to" symbol
+                    var span = $('<span>').html('<br>&le;').css({'padding-right': '5px', 'font-size': 'large'});
+                    // Create the input field
+                    var input = $('<input type="text" placeholder="">')
+                        .attr({'data-column-index': index, 'ID': 'threshold-col-'+index})
+                        .css({'width': '20%', 'min-width': '70px'})
+                        .on('click', function(e) {
+                            e.stopPropagation();  // Prevent sorting when clicking the input field
+                        })
+                        .on('input', function() {
+                            // Capture the input element reference
+                            var inputElement = $(this);
+                            var colIndex = inputElement.data('column-index');
+                            var filterVal = inputElement.val();
+                            
+                            // Update the columnFilters object with the new filter value or remove it if filter is cleared
+                            // only redraw table when columnFilters updates
+                            if (filterVal === '') {
+                                // Handle empty string case
+                                inputElement.css('background-color', '');
+                                inputElement.removeClass('not-number');
+                                if (columnFilters.hasOwnProperty(colIndex)) {
+                                    delete columnFilters[colIndex];
+                                    myTable.draw(); // Redraw the DataTable to apply filters
+                                }
+                            } else if (isNaN(parseFloat(filterVal))) {
+                                // Handle non number case
+                                inputElement.css('background-color', '#8BBEF0');
+                                inputElement.addClass('not-number');
+                            } else {
+                                inputElement.css('background-color', '#8BBEF0');
+                                inputElement.removeClass('not-number');
+                                filterVal = parseFloat(filterVal);
+                                if (!columnFilters.hasOwnProperty(colIndex) || columnFilters[colIndex]!==filterVal) {
+                                    columnFilters[colIndex] = filterVal;
+                                    myTable.draw(); // Redraw the DataTable to apply filters
+                                }
+                            }
+                        });
+                    // Create the clear button
+                    var clearButton = $('<button type="button">')
+                        .text('x')
+                        .attr({'ID': 'clear-input-'+index})
+                        .on('click', function(e) {
+                            e.stopPropagation();  // Prevent sorting when clicking the input field
+                            input.val(''); // Clear the input
+                            input.trigger('input'); // Trigger the input event to redraw the table
+                        });
+
+                    // Add the "<=" symbol, input field and clear button to the header
+                    $(column.header()).append(span).append(input).append(clearButton);
+                }
+            });
+        
+            
+            // Column Visibility
+            $('input[type="checkbox"]').on('change', function() {
+                var colIndex = $(this).data('column-index');
+                var isChecked = $(this).is(':checked');
+                // Toggle column visibility
+                myTable.column(colIndex).visible(isChecked);
+                // we can also clear filtering when hidden one column, NOTE to do it first clear the filtering then hidden column since after hide column your can't access the column by ID anymore
+            });
+        })
+    </script>
+{% endblock %}

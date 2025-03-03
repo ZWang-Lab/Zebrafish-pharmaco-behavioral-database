@@ -1,0 +1,431 @@
+{# Jinja web template engine which will be rendered by Flask #}
+{# Template Inheritance #}
+{% extends "mybase.html" %}
+{% from "bootstrap5/form.html" import render_field %}
+
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+      <div class="col-md-8 offset-md-2">
+          <br>
+          <p>Select drugs and/or behavioral features then draw heatmap or browsing raw data</p>
+  
+          {# query form #}
+          {# Submit action need to assigned to corresponding route #}
+          <!-- add target="_blank" will open new tab and render page when press button -->
+          <!-- set autocomplete="off" to prevent browser autofill the input fields -->
+          <!-- novalidate simple browser default validation on required attribute -->
+          <form id="myForm" class="form" method="POST" action="" role="form" target="_blank" autocomplete="off" novalidate>
+              {{ form.csrf_token }}
+              {# left + middle + right panels #}
+              <div class="row border border-dark">
+                  {# left panel #}
+                  <div
+                      class="col-sm-6 border-end border-white border-2"
+                      style="background: #efbe8c">
+                      <div
+                          class="row border-bottom border-white border-1"
+                          style="background: #53bff3">
+                          <h4 style="color: white">Select Drug(s)</h4>
+                      </div>
+                      {# radio form for switch drugs with and without annotation #}
+                      <div class="row">
+                          <div class="col">
+                              <input checked="" class="form-check-input" id="query_switch-0" name="query_switch" type="radio" value="include" />
+                              <label class="form-check-label" for="query_switch-0">Included</label>
+                          </div>
+                          <div class="col">
+                              <input class="form-check-input" id="query_switch-1" name="query_switch" type="radio" value="exclude" />
+                              <label class="form-check-label" for="query_switch-1">Excluded</label>
+                          </div>
+                          <div class="col">
+                              <input class="form-check-input" id="query_switch-2" name="query_switch" type="radio" value="all" />
+                              <label class="form-check-label" for="query_switch-2">All</label>
+                          </div>
+                      </div>
+                      <div class="row" style="margin-top: 10px">
+                          <div class="col-sm-4 d-inline-flex align-items-center" id='text_indication'>
+                              <h5>Indication</h5>
+                          </div>
+                          <div class="col-sm-8 d-inline-flex align-items-center">
+                              <select id="drug_indication" multiple name="drug_indication"></select>
+                          </div>
+                      </div>
+                      <div class="row" style="margin-top: 10px">
+                          <div class="col-sm-4 d-inline-flex align-items-center" id='text_target'>
+                              <h5>Drug Targets(s)</h5>
+                          </div>
+                          <div class="col-sm-8 d-inline-flex align-items-center">
+                              <select id="drug_target" multiple name="drug_target"></select>
+                          </div>
+                      </div>
+                      <div class="row" style="margin-top: 10px; margin-bottom: 10px">
+                          <div class="col-sm-4 d-inline-flex align-items-center">
+                              <h5>Drug Name</h5>
+                          </div>
+                          <div class="col-sm-8 d-inline-flex align-items-center">
+                              {{ form.drug_name }}
+                          </div>
+                      </div>
+                  </div>
+                  
+                  {# right panel #}
+                  <div
+                      class="col-sm-6 border-end border-white border-2"
+                      style="background: #efbe8c">
+                      <div
+                          class="row border-bottom border-white border-1"
+                          style="background: #53bff3">
+                          <h4 style="color: white">Select Feature(s)</h4>
+                      </div>
+                      <div class="row" style="margin-top: 10px">
+                          <div class="col-sm-4 d-inline-flex align-items-center">
+                              <h5>Sleep Wake</h5>
+                          </div>
+                          <div class="col-sm-8 d-inline-flex align-items-center">
+                              {{ form.sleepwake_feature }}
+                          </div>
+                      </div>
+                      <div class="row" style="margin-top: 10px; margin-bottom: 10px">
+                          <div class="col-sm-4 d-inline-flex align-items-center">
+                              <h5>Startle</h5>
+                          </div>
+                          <div class="col-sm-8 d-inline-flex align-items-center">
+                              {{ form.startle_feature }}
+                          </div>
+                      </div>
+                  </div>
+              </div>
+              {# bottom radio form + submit buttons #}
+              <div class="row" style="margin-bottom: 1rem; margin-top: 10px">
+                  <div class="col-sm-6">
+                      <div class="row">
+                          <div class="col-sm-6 d-inline-flex align-items-center">
+                              <h5>Select one type of data</h5>
+                          </div>
+                          {% set radio_pval, radio_score = form.value_type %}
+                          <div class="col-sm-3">
+                              {{ radio_pval(class_="form-check-input") }} {{ radio_pval.label(class_="form-check-label") }}
+                          </div>
+                          <div class="col-sm-3">
+                              {{ radio_score(class_="form-check-input") }} {{ radio_score.label(class_="form-check-label") }}
+                          </div>
+                      </div>
+                  </div>
+                  <div class="col-sm-4 d-flex gap-4">
+                      <input class="btn btn-success btn-lg bottom-button" style="min-width: 100px; font-size: larger" id="reset_button" type="button" value="Reset">
+                      {{ render_field(form.heatmap_button, button_size="lg", style="min-width: 160px; font-size: larger") }}
+                      {{ render_field(form.value_button, button_size="lg", style="min-width: 160px; font-size: larger") }}
+                  </div>
+              </div>
+          </form>
+      </div>
+  </div>
+</div>
+{% endblock %}
+
+
+{% block styles %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery.multiselect.css') }}">
+    <style>
+        /* set selector width to 300px, the default width is too short */
+        .ms-options-wrap {
+            width: 300px;
+        }
+    </style>
+    
+{% endblock %}
+
+
+{% block scripts %}
+    {{ super() }}
+    <script src="{{ url_for('static', filename='js/jquery.multiselect.js') }}"></script>				
+    <script>
+        // ------------------------------------- multiple selectors -----------------------------------------------------------
+        const init_sw_options = [{ name : "RW:avgAct_d", value : "RW:avgAct_d", checked: true },
+                                 { name : "RW:avgAct_n", value : "RW:avgAct_n", checked: true },
+                                 { name : "RW:avgWak_d", value : "RW:avgWak_d", checked: true },
+                                 { name : "RW:avgWak_n", value : "RW:avgWak_n", checked: true },
+                                 { name : "RW:slpBout_d", value : "RW:slpBout_d", checked: true },
+                                 { name : "RW:slpBout_n", value : "RW:slpBout_n", checked: true },
+                                 { name : "RW:slpLtcy_d", value : "RW:slpLtcy_d", checked: true },
+                                 { name : "RW:slpLtcy_n", value : "RW:slpLtcy_n", checked: true },
+                                 { name : "RW:slpLen_d", value : "RW:slpLen_d", checked: true },
+                                 { name : "RW:slpLen_n", value : "RW:slpLen_n", checked: true },
+                                 { name : "RW:slp_d", value : "RW:slp_d", checked: true },
+                                 { name : "RW:slp_n", value : "RW:slp_n", checked: true }];
+        
+        const init_startle_options = [{ label  : "On",
+                                        options: [{ name : "On:mean:STIM", value : "On:mean:STIM", checked: true },
+                                                  { name : "On:mean:POST", value : "On:mean:POST", checked: true },
+                                                  { name : "On:mean:STIM1", value : "On:mean:STIM1", checked: true },
+                                                  { name : "On:mean:POST1", value : "On:mean:POST1", checked: true },
+                                                  { name : "On:mean:STIM-POST", value : "On:mean:STIM-POST", checked: true },
+                                                  { name : "On:mean:STIM5", value : "On:mean:STIM5", checked: true }
+                                                 ]
+                                      }, {
+                                        label  : "Off",
+                                        options: [{ name : "Off:mean:STIM", value : "Off:mean:STIM", checked: true },
+                                                  { name : "Off:mean:POST", value : "Off:mean:POST", checked: true },
+                                                  { name : "Off:mean:STIM1", value : "Off:mean:STIM1", checked: true },
+                                                  { name : "Off:mean:POST1", value : "Off:mean:POST1", checked: true },
+                                                  { name : "Off:mean:STIM-POST", value : "Off:mean:STIM-POST", checked: true },
+                                                  { name : "Off:mean:STIM5", value : "Off:mean:STIM5", checked: true }
+                                                 ]
+                                      }];
+        
+        let init_drug_target_options = [];
+        let init_drug_indication_options = [];
+        let init_drug_no_annotation_options = [];
+        let init_drug_with_annotation_options = [];
+        let init_drug_all_options = [];
+        let drug_target_dict = [];
+        let drug_indication_dict = [];
+        
+        // id for disable would be $ms-list-1
+        $('#drug_indication').multiselect({
+            columns : 1,
+            search : true,
+            selectAll: true,
+            texts : { placeholder: 'Select indication',
+                      search : 'Search indication'
+                    }
+        });
+        
+        // id for disable would be $ms-list-2
+        $('#drug_target').multiselect({
+            columns : 1,
+            search : true,
+            selectAll: true,
+            texts : { placeholder: 'Select target',
+                      search : 'Search target'
+                    }
+        });
+        
+        $('#drug_name').multiselect({
+            columns : 1,
+            search : true,
+            selectAll: true,
+            texts : { placeholder: 'Select drug',
+                      search : 'Search drug'
+                    }
+        });
+        
+        $('#sleepwake_feature').multiselect({
+            columns : 1,
+            search : true,
+            selectAll: true,
+            texts : { placeholder: 'Select feature',
+                      search : 'Search feature'
+                    }
+        });
+        
+        $('#startle_feature').multiselect({
+            columns : 1,
+            search : true,
+            selectAll: true,
+            selectGroup: true,
+            texts : { placeholder: 'Select feature',
+                      search : 'Search feature'
+                    }
+        });
+        
+        // to achieve the disable effect, we need to disable the button element
+        // get button element for disable
+        let for_disable1 = '#' + $('#drug_indication').attr('class').split(' ').find(cls => cls.startsWith('ms-list')) + ' button'
+        let for_disable2 = '#' + $('#drug_target').attr('class').split(' ').find(cls => cls.startsWith('ms-list')) + ' button'
+        
+        function init_selectors() {
+            $(for_disable1).prop('disabled', false);
+            $(for_disable2).prop('disabled', false);
+            $('#text_target h5').css('opacity', 1);
+            $('#text_indication h5').css('opacity', 1);
+            
+            $('#sleepwake_feature').multiselect('loadOptions', init_sw_options);
+            $('#startle_feature').multiselect('loadOptions', init_startle_options);
+            $('#drug_name').multiselect('loadOptions', init_drug_with_annotation_options);
+            $('#drug_indication').multiselect('loadOptions', init_drug_indication_options);
+            $('#drug_target').multiselect('loadOptions', init_drug_target_options);
+        }
+        
+        // get all json files, including drug names, targets and indications, and make sure the following codes only runs after the fetch completes
+        async function fetchAllDataAndProcess() {
+            try {
+                // Disable the form
+                $('#myForm').find(':input').prop('disabled', true);
+                
+                // Fetch all JSON files simultaneously
+                let [response_name, response_target, response_indication] = await Promise.all([
+                    fetch("/static/json/254_drug_without_annotation.json"),
+                    fetch("/static/json/drug_mechanism.json"),
+                    fetch("/static/json/drug_indication.json"),
+                ]);
+                
+                // Check if all responses are ok
+                if (!response_name.ok || !response_target.ok || !response_indication.ok) {
+                    throw new Error("Network response was not ok during fetch json files!");
+                }
+                
+                // Convert all responses to JSON
+                let [data_name, data_target, data_indication] = await Promise.all([response_name.json(), response_target.json(), response_indication.json()]);
+                
+                // processing drug names
+                init_drug_no_annotation_options = data_name.sort().map(x => ({ name: x, value: x, checked: true }));
+                
+                // processing drug targets
+                drug_target_dict = data_target;
+                init_drug_target_options = Object.keys(drug_target_dict).sort().map(x => ({ name: x, value: x, checked: true }));
+                
+                // processing drug indications
+                drug_indication_dict = data_indication;
+                init_drug_indication_options = Object.keys(drug_indication_dict).sort().map(x => ({ name: x, value: x, checked: true }));
+                
+                // get drug names with annotation as an array
+                // Get all values of the object as an array of lists
+                let drug_with_annotation_names = [ ...new Set(
+                    Object.values(drug_target_dict).flat().concat(Object.values(drug_indication_dict).flat())
+                )];
+                init_drug_with_annotation_options = drug_with_annotation_names.sort().map(x => ({ name: x, value: x, checked: true }));
+                
+                // all drugs
+                let drug_all_names = [...new Set([...data_name, ...drug_with_annotation_names])];
+                init_drug_all_options = drug_all_names.sort().map(x => ({ name: x, value: x, checked: true }));
+                
+                // Init selectors
+                init_selectors();
+                
+                // Enable the form
+                $('#myForm').find(':input').prop('disabled', false);
+                
+            } catch (error) {
+                alert("There was a problem:", error.message);
+                $('#myForm').find(':input').prop('disabled', false);  // Ensure form is enabled even if there's an error
+            }
+        }
+        
+        // Call the async function
+        fetchAllDataAndProcess();
+        
+        
+        $(document).ready(function() {
+            // Your JavaScript code here will run once the DOM is ready
+            $("#reset_button").click(function() {
+                init_selectors();
+                $("input[name='value_type'][value='p_value']").prop("checked", true);
+                $("input[name='query_switch'][value='include']").prop("checked", true);
+            });
+            
+            // directly show the heatmap in a popup window
+            $("#heatmap_button").click(function(event) {
+                event.preventDefault(); // Prevent the default form submission
+
+                // Open a new popup window
+                // Calculate the width and height for the popup window
+                var w = 1350;
+                var h = 850;
+
+                // Calculate the left and top offsets to center the window
+                var leftOffset = window.screen.width/2 - w/2;
+                var topOffset = window.screen.height/2 - h/2;
+
+                // Open a new popup window in the center
+                var win = window.open('', 'formPopup', 'width=' + w + ', height=' + h + ', top=' + topOffset + ', left=' + leftOffset + ', scrollbars=yes, resizable=yes');
+
+                // Check if the window was blocked
+                if(!win || win.closed || typeof win.closed === 'undefined') {
+                    alert('Please allow popups for this site');
+                    return;
+                }
+
+                // Submit form
+                // Set the target of the form to the popup window
+                $('#myForm').attr('target', 'formPopup');
+                // Set POST action to Show Heatmap page
+                $('#myForm').attr('action', "{{ url_for('show_heatmap') }}");
+                // Submit the form
+                $('#myForm').submit();
+                // Focus on the new window
+                win.focus();
+            });
+        
+            // show data in new window
+            $("#value_button").click(function(event) {
+                event.preventDefault(); // Prevent the default form submission
+                
+                // Set POST action to Show Heatmap page
+                $('#myForm').attr('action', "{{ url_for('show_data') }}");
+                 // Submit the form
+                $('#myForm').submit();
+            });
+            
+            // switch between drugs with and without annotation
+            $("input[name=query_switch]").on("change", function () {
+
+                if (this.value == "include") {
+                    $(for_disable1).prop('disabled', false);
+                    $(for_disable2).prop('disabled', false);
+                    $('#text_target h5').css('opacity', 1);
+                    $('#text_indication h5').css('opacity', 1);
+                    
+                    $('#drug_name').multiselect('loadOptions', init_drug_with_annotation_options);
+                    $('#drug_indication').multiselect('loadOptions', init_drug_indication_options);
+                    $('#drug_target').multiselect('loadOptions', init_drug_target_options);
+                } else if (this.value == "exclude") {
+                    // to achieve the disable effect, we need to disable the button element
+                    $(for_disable1).prop('disabled', true);
+                    $(for_disable2).prop('disabled', true);
+                    $('#text_target h5').css('opacity', 0.6);
+                    $('#text_indication h5').css('opacity', 0.6);
+                
+                    $('#drug_name').multiselect('loadOptions', init_drug_no_annotation_options);
+                } else if (this.value == "all") {
+                    // to achieve the disable effect, we need to disable the button element
+                    $(for_disable1).prop('disabled', true);
+                    $(for_disable2).prop('disabled', true);
+                    $('#text_target h5').css('opacity', 0.6);
+                    $('#text_indication h5').css('opacity', 0.6);
+                
+                    $('#drug_name').multiselect('loadOptions', init_drug_all_options);
+                }
+            });
+            
+            // change drug name options according to selected targets and indications
+            function updateDrugName() {
+                let new_drugs = [];
+                
+                // find selected targets
+                let selected_targets = $("#drug_target").find('option:selected').map(function() {
+                    return this.value;
+                }).get();
+                selected_targets.forEach(value => {
+                    new_drugs = new_drugs.concat(drug_target_dict[value]);
+                });
+                
+                // find selected indications
+                let selected_indications = $("#drug_indication").find('option:selected').map(function() {
+                    return this.value;
+                }).get();
+                selected_indications.forEach(value => {
+                    new_drugs = new_drugs.concat(drug_indication_dict[value]);
+                });
+                
+                if (new_drugs.length === 0) {
+                    // no targets or indications is selected, clear all drugs
+                    $('#drug_name').multiselect('loadOptions', []);
+                } else {
+                    $('#drug_name').multiselect('loadOptions', Array.from(new Set(new_drugs)).sort().map(x => ({ name: x, value: x, checked: true })));
+                }
+            }
+            
+            // update drugs for selection once selected targets and indications are changed
+            $('#drug_target').change(function() {
+                updateDrugName();
+            });
+            $('#drug_indication').change(function() {
+                updateDrugName();
+            });
+        });
+    </script>
+{% endblock %}
